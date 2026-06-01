@@ -157,7 +157,7 @@ def build_dataset() -> list[dict]:
     # 1b. The "could've just been a search" email — unread, newest (top of inbox).
     #     Fixed Message-ID so we can pre-seed the agent's researched reply.
     add("INBOX", "", _msg(
-        frm="Greg <greg@odysseus-demo.example>",
+        frm="Greg <greg@telemachus-demo.example>",
         subject="quick q for the slide — DeepSeek-V3 param count?",
         msg_id=LOOKUP_MSGID, days_ago=0, hours_ago=0,
         text=("hey! sorry to bug you — in a meeting and someone asked and i'm "
@@ -223,10 +223,10 @@ def build_dataset() -> list[dict]:
 
     # 6. Urgent — flagged + unread.
     add("INBOX", "(\\Flagged)", _msg(
-        frm="Ops Bot <ops@odysseus-demo.example>",
-        subject="[URGENT] prod is on fire 🔥 — odysseus-ui 502s",
+        frm="Ops Bot <ops@telemachus-demo.example>",
+        subject="[URGENT] prod is on fire 🔥 — telemachus-ui 502s",
         days_ago=0, hours_ago=1,
-        text=("PAGE: odysseus-ui is returning 502s on the /api/chat endpoint.\n"
+        text=("PAGE: telemachus-ui is returning 502s on the /api/chat endpoint.\n"
               "Error rate 38% over the last 5 min. Last deploy was 12 min ago.\n\n"
               "Need eyes ASAP. Reply here or join the incident call.")))
 
@@ -287,7 +287,7 @@ def _seed_cache() -> None:
             "(message_id, uid, folder, subject, sender, summary, model_used, created_at) "
             "VALUES (?,?,?,?,?,?,?,?)",
             (LOOKUP_MSGID, "", "INBOX", "quick q for the slide — DeepSeek-V3 param count?",
-             "greg@odysseus-demo.example", summary, "demo", now))
+             "greg@telemachus-demo.example", summary, "demo", now))
         con.commit()
         print("  pre-seeded cached AI reply + summary for the lookup email.")
     finally:
