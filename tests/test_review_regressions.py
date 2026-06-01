@@ -68,6 +68,9 @@ def _install_model_route_import_stubs(monkeypatch):
     db_mod = types.ModuleType("core.database")
     db_mod.SessionLocal = lambda: _FakeDb([])
     db_mod.ModelEndpoint = _FakeModelEndpoint
+    # model_routes.py imports `Session as DbSession` too (used only as a type
+    # alias here); provide it so the stubbed re-import doesn't ImportError.
+    db_mod.Session = MagicMock()
     middleware_mod = types.ModuleType("core.middleware")
     middleware_mod.require_admin = lambda request: None
     multipart_mod = types.ModuleType("python_multipart")
