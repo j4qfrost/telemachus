@@ -182,10 +182,6 @@ Usage:
     python update_database.py
 """
 
-import os
-from datetime import datetime
-from sqlalchemy import create_engine, text
-from database import DATABASE_URL, SessionLocal
 
 def update_database():
     """Update the database schema and populate new columns."""

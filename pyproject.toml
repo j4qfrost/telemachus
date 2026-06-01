@@ -1,3 +1,21 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# Vendored/minified JS, runtime data, and the local venv are not ours to lint.
+extend-exclude = ["static", "data", "logs", ".venv"]
+
+[tool.ruff.lint]
+# Conservative first gate: pyflakes real-bug class only. The large style/format
+# debt (E501 ~4k, import-sorting ~440, E4xx/E7xx) and the F401 unused-import
+# sweep are deferred to a dedicated formatting PR so this CI bootstrap stays a
+# small, reviewable diff. Expand `select` once that lands.
+select = ["F"]
+ignore = [
+    "F401",  # unused-import — many are intentional lazy/re-exports; sweep later
+    "F403",  # `from .constants import *` — deliberate constants re-export
+    "F841",  # unused local — cosmetic; defer with the format PR
+]

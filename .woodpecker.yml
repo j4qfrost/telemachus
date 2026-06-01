@@ -1,0 +1,17 @@
+# Self-hosted CI (snowman Forgejo + Woodpecker). GitHub Actions is intentionally
+# not used. Local signal: `woodpecker exec --pipeline-event push`.
+when:
+  - event: [push, pull_request]
+
+steps:
+  - name: test
+    image: python:3.12
+    commands:
+      # Single combined install keeps the layer/cache simple; dev deps add ruff +
+      # pytest(+randomly). No Node step — tests/test_compare_js.py self-skips when
+      # `node` is absent, so coverage does not regress and the image stays Node-free.
+      - python -m pip install --quiet --upgrade pip
+      - pip install -r requirements.txt -r requirements-dev.txt
+      - ruff check .
+      - python -m py_compile $(git ls-files '*.py')
+      - pytest -q

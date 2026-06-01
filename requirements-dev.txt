@@ -1,0 +1,6 @@
+# Dev/test-only dependencies. NOT installed into the runtime image.
+# (pytest + pytest-asyncio moved here out of requirements.txt.)
+pytest
+pytest-asyncio
+pytest-randomly   # randomizes test order every run — catches order-dependent state leaks
+ruff              # lint + format; config in pyproject.toml [tool.ruff]
