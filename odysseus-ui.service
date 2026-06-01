@@ -1,18 +1,23 @@
-# Copy to /etc/systemd/system/odysseus-ui.service
-# Edit User, WorkingDirectory, and ExecStart paths to match your setup
+# systemd unit for the web UI. Prefer ./install-service.sh, which fills in the
+# bracketed tokens below from your environment (user, install dir, bind host/port,
+# venv) and refuses to install if any token is left unresolved.
+#
+# To install by hand instead: replace each token and copy to
+# /etc/systemd/system/odysseus-ui.service.
 [Unit]
 Description=Odysseus UI
 After=network.target
 
 [Service]
 Type=simple
-# CHANGE THESE to match your user and install path:
-User=YOURUSER
-WorkingDirectory=/home/YOURUSER/odysseus-ui
-ExecStart=/home/YOURUSER/odysseus-ui/venv/bin/uvicorn app:app --port 8000 --host 0.0.0.0
+User=__SERVICE_USER__
+WorkingDirectory=__INSTALL_DIR__
+# Bind to loopback by default (front with a reverse proxy or `tailscale serve`);
+# never 0.0.0.0 on a privileged box.
+ExecStart=__INSTALL_DIR__/__VENV__/bin/uvicorn app:app --host __BIND_HOST__ --port __APP_PORT__
 Restart=always
 RestartSec=3
-EnvironmentFile=-/home/YOURUSER/odysseus-ui/.env
+EnvironmentFile=-__INSTALL_DIR__/.env
 
 [Install]
 WantedBy=multi-user.target
