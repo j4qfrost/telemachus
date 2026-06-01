@@ -91,6 +91,74 @@ def create_env():
         print("  [warn] .env.example not found — create .env manually")
 
 
+def seed_default_endpoint():
+    """Optionally seed a shared snowman-Ollama model endpoint + default model.
+
+    Opt-in via TELEMACHUS_SEED_DEFAULT_ENDPOINT=1 (off by default — upstream
+    deliberately stopped auto-adding Ollama). No-op if any endpoint already
+    exists, so it never clobbers an admin's configuration. Mirrors the UI's
+    create_model_endpoint path so the row's invariants match.
+    """
+    if os.getenv("TELEMACHUS_SEED_DEFAULT_ENDPOINT", "").strip().lower() not in ("1", "true", "yes"):
+        print("  [skip] endpoint seeding off (set TELEMACHUS_SEED_DEFAULT_ENDPOINT=1 to enable)")
+        return
+
+    sys.path.insert(0, BASE_DIR)
+    import json
+    import uuid
+
+    from core.database import ModelEndpoint, SessionLocal
+    from src.endpoint_resolver import normalize_base, resolve_url
+    from src.settings import load_settings, save_settings
+
+    base_url = os.getenv("OLLAMA_BASE_URL") or f"http://{os.getenv('LLM_HOST', 'snowman')}:11434/v1"
+    base_url = resolve_url(normalize_base(base_url.strip().rstrip("/")))
+    name = os.getenv("TELEMACHUS_SEED_ENDPOINT_NAME", "snowman-ollama")
+
+    db = SessionLocal()
+    try:
+        if db.query(ModelEndpoint).first() is not None:
+            print("  [skip] a model endpoint already exists — not seeding")
+            return
+
+        # Best-effort probe (short timeout); fine if the host is asleep right now —
+        # discovery fills models later. Reuses the route's prober for identical behavior.
+        model_ids = []
+        try:
+            from routes.model_routes import _probe_endpoint
+            model_ids = _probe_endpoint(base_url, None, timeout=3) or []
+        except Exception as e:
+            print(f"  [warn] model probe failed ({e}); seeding endpoint without cached models")
+
+        ep = ModelEndpoint(
+            id=str(uuid.uuid4())[:8],
+            name=name,
+            base_url=base_url,
+            api_key=None,
+            is_enabled=True,
+            model_type="llm",
+            cached_models=json.dumps(model_ids) if model_ids else None,
+            supports_tools=None,
+            owner=None,  # shared (visible to all users)
+        )
+        db.add(ep)
+        db.commit()
+
+        settings = load_settings()
+        if not settings.get("default_endpoint_id"):
+            settings["default_endpoint_id"] = ep.id
+            settings["default_model"] = model_ids[0] if model_ids else ""
+            save_settings(settings)
+
+        print(f"  [ok] Seeded endpoint '{name}' -> {base_url} ({len(model_ids)} models)")
+        if model_ids:
+            print(f"        default chat model: {model_ids[0]}")
+        else:
+            print("        no models probed yet — set a default in the UI once the host is reachable")
+    finally:
+        db.close()
+
+
 def check_deps():
     """Check for common missing dependencies."""
     missing = []
@@ -143,6 +211,12 @@ def main():
         create_default_admin()
     except Exception as e:
         print(f"  [warn] Admin creation failed: {e}")
+
+    print("\n6. Seeding default model endpoint...")
+    try:
+        seed_default_endpoint()
+    except Exception as e:
+        print(f"  [warn] Endpoint seeding failed: {e}")
 
     print("\n=== Setup complete ===")
     # start-macos.sh launches the server itself (on its own port) right after
