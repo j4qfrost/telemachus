@@ -122,8 +122,19 @@ async def register_builtin_servers(mcp_manager):
             continue
         asyncio.create_task(_connect_python_server(server_id, script_path, name))
 
-    # Register NPX-based servers in the background (they take longer to start)
+    # Register NPX-based servers in the background (they take longer to start).
+    # The only npx server is the optional Browser MCP. Skip the whole npx path
+    # when npx is unavailable (e.g. this fork's Node-free image) — a narrow guard
+    # that leaves the Python built-in servers above untouched, unlike the broad
+    # ODYSSEUS_DISABLE_MCP flag which disables all of them.
     npx_path = _find_npx()
+    npx_available = bool(which_tool("npx")) or os.path.isfile(npx_path)
+    if not npx_available:
+        logger.info(
+            "npx not found — skipping optional Browser MCP server. "
+            "Python built-in MCP servers (image_gen/memory/rag/email) are unaffected."
+        )
+        return
     logger.info(f"NPX binary resolved to: {npx_path}")
 
     async def _start_npx_servers():

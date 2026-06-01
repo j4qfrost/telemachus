@@ -5,16 +5,17 @@ FROM python:3.12-slim
 # downloads, and serves from Docker installs.
 # git/cmake are required when Cookbook builds llama.cpp on first llama.cpp
 # launch inside Docker.
-# nodejs/npm provide npx for the optional built-in Browser MCP server.
 # gosu lets the entrypoint drop privileges cleanly so signals still reach
 # uvicorn directly (no extra shell layer like `su`/`sudo` would add).
+#
+# nodejs/npm are intentionally NOT installed: their only purpose was npx for the
+# optional Browser MCP server, which builtin_mcp.py now skips cleanly when npx is
+# absent. Dropping Node shrinks this privileged image's attack surface.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     curl \
     git \
-    nodejs \
-    npm \
     tmux \
     openssh-client \
     gosu \
@@ -44,4 +45,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 7000
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7000"]
+# Bind host/port are env-driven. BIND_HOST defaults to 0.0.0.0 because inside a
+# container the process must listen on the container interface for the published
+# port to work — tailnet exposure is controlled at the PUBLISH layer instead
+# (docker-compose `APP_BIND`, default 127.0.0.1). `exec` keeps uvicorn as PID 1's
+# child so SIGTERM from `docker stop` reaches it directly.
+CMD ["sh", "-c", "exec uvicorn app:app --host \"${BIND_HOST:-0.0.0.0}\" --port \"${APP_PORT:-7000}\""]

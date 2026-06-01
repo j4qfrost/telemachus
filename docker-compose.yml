@@ -2,7 +2,10 @@ services:
   odysseus:
     build: .
     ports:
-      - "${APP_PORT:-7000}:7000"
+      # Host-side bind defaults to loopback so the app is never on 0.0.0.0 by
+      # accident on a privileged box. For tailnet access set APP_BIND to snowman's
+      # tailscale IP (100.x.y.z), or keep loopback and front it with `tailscale serve`.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-7000}:7000"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
