@@ -1,5 +1,5 @@
 #!/bin/bash
-# Render odysseus-ui.service from the current environment and install it.
+# Render telemachus-ui.service from the current environment and install it.
 # No hand-editing required (the old flow shipped a unit still containing
 # YOURUSER and a wrong :8000 bind). Override any of these via env:
 #   SERVICE_USER (default: current user)   INSTALL_DIR (default: this repo)
@@ -7,8 +7,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE="$SCRIPT_DIR/odysseus-ui.service"
-[ -f "$TEMPLATE" ] || { echo "Error: odysseus-ui.service not found in $SCRIPT_DIR" >&2; exit 1; }
+TEMPLATE="$SCRIPT_DIR/telemachus-ui.service"
+[ -f "$TEMPLATE" ] || { echo "Error: telemachus-ui.service not found in $SCRIPT_DIR" >&2; exit 1; }
 
 SERVICE_USER="${SERVICE_USER:-$(id -un)}"
 INSTALL_DIR="${INSTALL_DIR:-$SCRIPT_DIR}"
@@ -44,9 +44,9 @@ if grep -vE '^[[:space:]]*#' "$RENDERED" | grep -qE '__[A-Z_]+__|YOURUSER'; then
   exit 1
 fi
 
-echo "Installing odysseus-ui.service"
+echo "Installing telemachus-ui.service"
 echo "  user=$SERVICE_USER  dir=$INSTALL_DIR  venv=$VENV  bind=$BIND_HOST:$APP_PORT"
-sudo cp "$RENDERED" /etc/systemd/system/odysseus-ui.service
+sudo cp "$RENDERED" /etc/systemd/system/telemachus-ui.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now odysseus-ui
-sudo systemctl status odysseus-ui --no-pager
+sudo systemctl enable --now telemachus-ui
+sudo systemctl status telemachus-ui --no-pager

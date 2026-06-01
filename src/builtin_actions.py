@@ -1702,7 +1702,7 @@ async def action_check_email_urgency(owner: str, **kwargs) -> Tuple[str, bool]:
                             if not raw:
                                 continue
                             msg = _email_mod.message_from_bytes(raw)
-                            # Skip Odysseus-generated reminders so the scanner
+                            # Skip Telemachus-generated reminders so the scanner
                             # doesn't classify its own emails as urgent and
                             # trigger a feedback loop. Match on either the
                             # stamped headers OR the subject prefix.
@@ -2004,7 +2004,7 @@ async def action_check_email_urgency(owner: str, **kwargs) -> Tuple[str, bool]:
             # one — so the reminder email tells you which messages to act on,
             # not just "4 needing reply". Optional deep-link when the user has
             # `app_public_url` configured in Settings (so the email row links
-            # straight into the Odysseus Email tab).
+            # straight into the Telemachus Email tab).
             # Sort: highest-scored UIDs first; cap at 10 to keep the email tidy.
             sorted_urgent = sorted(
                 ((k, per_uid_scores[k]) for k in urgent_keys),

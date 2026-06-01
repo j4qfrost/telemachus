@@ -1,6 +1,6 @@
 # Security Policy
 
-Odysseus is a self-hosted AI workspace with privileged local capabilities. Please do not run it as a public, unauthenticated service.
+Telemachus is a self-hosted AI workspace with privileged local capabilities. Please do not run it as a public, unauthenticated service.
 
 ## Supported Versions
 
@@ -16,7 +16,7 @@ Security fixes are handled on the default branch until formal releases are cut.
 - Keep demo/test users non-admin, and remove them entirely on serious deployments.
 - Give admin accounts strong passwords and enable 2FA where possible.
 - Leave high-risk agent tools restricted to admins: shell, Python, file read/write, email send/read, MCP, app API, task/skill/memory management, settings, tokens, and model serving.
-- Rotate API keys, webhook secrets, and Odysseus API tokens if they appear in logs, screenshots, demos, or shared chats.
+- Rotate API keys, webhook secrets, and Telemachus API tokens if they appear in logs, screenshots, demos, or shared chats.
 - Treat shell, model-serving, MCP, email, calendar, and vault features as privileged admin functionality.
 
 ## Publishing A Fork

@@ -5,7 +5,7 @@
 # To install by hand instead: replace each token and copy to
 # /etc/systemd/system/odysseus-ui.service.
 [Unit]
-Description=Odysseus UI
+Description=Telemachus UI
 After=network.target
 
 [Service]

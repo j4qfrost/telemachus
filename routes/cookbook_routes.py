@@ -45,7 +45,7 @@ _HF_TOKEN_STATUS_SNIPPET = (
     'echo "[odysseus] HF token: applied"; '
     'else '
     'echo "[odysseus] HF token: NOT SET — gated/private models will be denied. '
-    'Add one in Odysseus Settings -> Cookbook -> HuggingFace Token."; '
+    'Add one in Telemachus Settings -> Cookbook -> HuggingFace Token."; '
     'fi'
 )
 
@@ -421,7 +421,7 @@ def setup_cookbook_routes() -> APIRouter:
             lines.append(f"export HF_TOKEN='{_bash_squote(req.hf_token)}'")
         # Ensure pip-user scripts (e.g. hf CLI installed via --user) are on PATH
         lines.append('export PATH="$HOME/.local/bin:$PATH"')
-        # When Odysseus runs from a venv (e.g. native macOS install), put its bin
+        # When Telemachus runs from a venv (e.g. native macOS install), put its bin
         # on PATH so the tmux shell finds the bundled `hf`/`python3` without an
         # activated venv. Local bash runs only — meaningless over SSH/Windows.
         if not req.remote_host and req.platform != "windows":
@@ -950,7 +950,7 @@ def setup_cookbook_routes() -> APIRouter:
             # ── Linux/Termux: bash + tmux (existing flow) ──
             runner_lines = ["#!/bin/bash"]
             runner_lines.extend(_user_shell_path_bootstrap())
-            # Put Odysseus's own venv bin on PATH (local runs only) so the serve
+            # Put Telemachus's own venv bin on PATH (local runs only) so the serve
             # shell resolves the bundled python3/hf, mirroring the download flow.
             if not remote:
                 runner_lines.append(_local_tooling_path_export(sys.executable))
