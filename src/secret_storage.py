@@ -37,12 +37,33 @@ def _load_or_create_key() -> bytes:
     if _KEY_PATH.exists():
         return _KEY_PATH.read_bytes()
     _KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    key = Fernet.generate_key()
+
+    # Fresh install only: let a secrets manager provide the key via
+    # TELEMACHUS_APP_KEY (e.g. rendered by scripts/render-secrets.sh from sigil
+    # or Vaultwarden), so the key of record can live in the manager rather than
+    # only on disk. Falls back to generating one. Opt-in: unset = original
+    # behaviour. An existing key file is never overwritten (above), or every
+    # secret encrypted under it would become undecryptable.
+    injected = os.environ.get("TELEMACHUS_APP_KEY", "").strip()
+    if injected:
+        key = injected.encode("ascii")
+        try:
+            Fernet(key)  # validate: must be urlsafe-base64, 32 bytes
+        except (ValueError, TypeError) as e:
+            raise RuntimeError(
+                "TELEMACHUS_APP_KEY is set but is not a valid Fernet key. Generate one with: "
+                "python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+            ) from e
+        source = "TELEMACHUS_APP_KEY"
+    else:
+        key = Fernet.generate_key()
+        source = "generated"
+
     _KEY_PATH.write_bytes(key)
     # POSIX: lock the key to 0o600. Windows: no-op (the user-profile data dir is
     # already ACL-restricted); safe_chmod swallows both cases.
     safe_chmod(_KEY_PATH, 0o600)
-    logger.info(f"Generated new app key at {_KEY_PATH}")
+    logger.info(f"Wrote app key at {_KEY_PATH} (source: {source})")
     return key
 
 

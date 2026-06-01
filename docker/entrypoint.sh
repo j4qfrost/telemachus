@@ -64,6 +64,18 @@ for cu in /app/.local/lib/python*/site-packages/nvidia/cu13; do
     fi
 done
 
+# Opt-in secret injection from a manager (sigil / Vaultwarden). No-op unless
+# SECRET_BACKEND is set. The backend binary must be present in the image (it is
+# NOT by default — on a privileged host prefer the systemd path). Exports land in
+# this shell's env and are inherited through gosu by the app.
+if [ -n "${SECRET_BACKEND:-}" ] && [ -x /app/scripts/render-secrets.sh ]; then
+    if command -v "$SECRET_BACKEND" >/dev/null 2>&1; then
+        eval "$(/app/scripts/render-secrets.sh --export)"
+    else
+        echo "entrypoint: SECRET_BACKEND=$SECRET_BACKEND set but '$SECRET_BACKEND' is not in the image; skipping secret injection" >&2
+    fi
+fi
+
 # Drop root and run the actual app. `gosu` is preferred over `su` /
 # `sudo` because it cleans up the process tree (no extra shell layer)
 # so signals (SIGTERM from `docker stop`) reach uvicorn directly.

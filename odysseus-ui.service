@@ -19,5 +19,14 @@ Restart=always
 RestartSec=3
 EnvironmentFile=-__INSTALL_DIR__/.env
 
+# Opt-in secret injection from a manager (sigil / Vaultwarden). Set SECRET_BACKEND
+# and TELEMACHUS_SECRET_* in the .env above, then render into a tmpfs file and
+# SOURCE it at launch — systemd reads EnvironmentFile before ExecStartPre runs, so
+# sourcing in ExecStart is the pattern that actually works. Uncomment to enable:
+#RuntimeDirectory=telemachus
+#ExecStartPre=__INSTALL_DIR__/scripts/render-secrets.sh --envfile %t/telemachus/secrets.env
+#ExecStart=
+#ExecStart=/bin/sh -c 'set -a; . %t/telemachus/secrets.env; exec __INSTALL_DIR__/__VENV__/bin/uvicorn app:app --host __BIND_HOST__ --port __APP_PORT__'
+
 [Install]
 WantedBy=multi-user.target
