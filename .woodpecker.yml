@@ -15,3 +15,15 @@ steps:
       - ruff check .
       - python -m py_compile $(git ls-files '*.py')
       - pytest -q
+
+  # Reproducible Nix dev shell smoke — proves flake.nix resolves and the pinned
+  # py312 + ruff toolchain comes up. Mirrors `nix flake check` (the ruff gate)
+  # locally. Tarball-pinned nixpkgs means no api.github.com dependency.
+  - name: nix-shell
+    image: nixos/nix:2.24.9
+    environment:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+    commands:
+      - nix develop -c python --version
+      - nix develop -c ruff --version
+      - nix flake check
