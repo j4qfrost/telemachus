@@ -83,3 +83,6 @@ docs/windows-port/
 compound.config.json
 *.error.log
 _scratch/
+
+# Hardening sweep report (local review artifact, not for the repo)
+HARDENING-SWEEP.md
