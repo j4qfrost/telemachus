@@ -24,7 +24,7 @@ when:
 # the checkout is by SHA so the branch name is cosmetic.
 clone:
   git:
-    image: alpine/git
+    image: alpine/git:2.52.0@sha256:19e4b384912f316e1ebd93a2f5277df2ed9252e441c96eccc56914a9e8e009e8
     environment:
       FORGEJO_USER:
         from_secret: forgejo_user
@@ -43,7 +43,7 @@ steps:
   #    server-side privileged-plugin linter (which would otherwise hard-fail
   #    every push/PR run of ci.yml in this same .woodpecker/ dir too).
   build-image:
-    image: woodpeckerci/plugin-kaniko
+    image: woodpeckerci/plugin-kaniko:2.3.1@sha256:1dca5cffe785b96e040aa7b6acd5c644aaa6a35b89c5aaea6633f1186aa3a720
     settings:
       registry: forgejo:3000
       repo: ${CI_REPO}
@@ -58,13 +58,13 @@ steps:
 
   # 2. Assemble the thin Linux launcher bundle (source archive + SHA256SUMS).
   linux-bundle:
-    image: alpine/git
+    image: alpine/git:2.52.0@sha256:19e4b384912f316e1ebd93a2f5277df2ed9252e441c96eccc56914a9e8e009e8
     commands:
       - sh scripts/build-linux-bundle.sh "${CI_COMMIT_TAG}"
 
   # 3. Create the Forgejo Release and attach the Linux bundle + checksums.
   publish-release:
-    image: woodpeckerci/plugin-gitea-release
+    image: woodpeckerci/plugin-gitea-release:0.3.2@sha256:75dbc5dda5c6061024a2f4e7a628ded78724c6aa2771cf7604d1bf290a629494
     settings:
       base_url: http://forgejo:3000
       api_key:

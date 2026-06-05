@@ -9,10 +9,17 @@ __pycache__/
 dist/
 build/
 .env
+**/.env
+*.env
+!.env.example
 /data/
 /logs/
 .git/
+.gitea/
+.github/
+.woodpecker/
 .claude/
+.aider*
 .playwright-mcp/
 .pytest_cache/
 .vscode/
@@ -39,3 +46,13 @@ timetree*.png
 *_signin_page.png
 *_calendar_view.png
 .gitignore
+# Editor / OS cruft — *.swp can hold unsaved buffer content (incl. secrets).
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+# Build / tool caches that may carry local state.
+*.cache
+cache/
+HARDENING-SWEEP.md

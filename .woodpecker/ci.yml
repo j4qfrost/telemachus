@@ -8,7 +8,7 @@ when:
 
 steps:
   - name: test
-    image: python:3.12
+    image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
     commands:
       # Single combined install keeps the layer/cache simple; dev deps add ruff +
       # pytest(+randomly). No Node step — tests/test_compare_js.py self-skips when

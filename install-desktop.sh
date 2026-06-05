@@ -35,10 +35,14 @@ if [ -f "$SRC_IMG" ]; then
   fi
 fi
 
-# Render the .desktop with an absolute Exec and Icon path.
-sed -e "s#^Exec=.*#Exec=$REPO_DIR/start-linux.sh#" \
-    -e "s#^Icon=.*#Icon=$ICON#" \
-    "$REPO_DIR/telemachus.desktop" >"$DESKTOP"
+# Render the .desktop with an absolute Exec and Icon path. awk -v passes the
+# replacement values literally, so a repo path containing sed-special chars
+# (#, &, \) can't corrupt or break the substitution.
+awk -v exec_path="$REPO_DIR/start-linux.sh" -v icon_path="$ICON" '
+  /^Exec=/ { print "Exec=" exec_path; next }
+  /^Icon=/ { print "Icon=" icon_path; next }
+  { print }
+' "$REPO_DIR/telemachus.desktop" >"$DESKTOP"
 chmod +x "$REPO_DIR/start-linux.sh"
 
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
