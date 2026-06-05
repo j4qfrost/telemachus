@@ -49,11 +49,9 @@ ships the relocatable source bundle instead.
 - **Woodpecker secret `forgejo_release_token`** — a Forgejo PAT with `write:repository` +
   `write:package` (the shared `forgejo_token` is read-only). Used for the registry push and
   the Release publish.
-- **Agent privileged plugin allowlist** — `woodpeckerci/plugin-docker-buildx` must be allowed
-  to run privileged (it builds the image via buildkit).
-- **`forgejo:3000` is an HTTP registry** — the buildx step sets `insecure: true`. If the host
-  Docker daemon rejects it, the fallback is pushing to the TLS endpoint
-  `snowman.tailddc637.ts.net:8443`.
+- **`forgejo:3000` is an HTTP registry** — the kaniko step sets `insecure: true`.
+  The image is built with **kaniko** in userspace, so there is no privileged-plugin
+  allowlist to configure and the server-side linter does not reject the pipeline.
 
 ## Verify after tagging
 

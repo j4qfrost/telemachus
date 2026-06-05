@@ -12,9 +12,9 @@
 #   - Woodpecker repo secret `forgejo_release_token` = a Forgejo PAT with
 #     write:repository + write:package scope (the shared read-only `forgejo_token`
 #     is NOT enough). Used for both the registry push and the Release publish.
-#   - The agent must allow the docker-buildx plugin to run privileged
-#     (WOODPECKER_PLUGINS_PRIVILEGED includes woodpeckerci/plugin-docker-buildx).
 #   - `forgejo:3000` is an HTTP (insecure) registry -> `insecure: true` below.
+# The image build uses kaniko (userspace) — no privileged plugin, so there is no
+# WOODPECKER_PLUGINS_PRIVILEGED requirement and the server-side linter stays happy.
 when:
   - event: tag
     ref: refs/tags/v*
@@ -38,20 +38,23 @@ clone:
 
 steps:
   # 1. Build + push the deployable container image to the Forgejo registry.
+  #    kaniko builds in userspace — NO privileged mode, no Docker daemon — so it
+  #    needs no WOODPECKER_PLUGINS_PRIVILEGED allowlist and doesn't trip the
+  #    server-side privileged-plugin linter (which would otherwise hard-fail
+  #    every push/PR run of ci.yml in this same .woodpecker/ dir too).
   build-image:
-    image: woodpeckerci/plugin-docker-buildx:5
+    image: woodpeckerci/plugin-kaniko
     settings:
       registry: forgejo:3000
-      insecure: true
+      repo: ${CI_REPO}
+      tags:
+        - ${CI_COMMIT_TAG}
+        - latest
       username:
         from_secret: forgejo_user
       password:
         from_secret: forgejo_release_token
-      repo: forgejo:3000/${CI_REPO}
-      tags:
-        - ${CI_COMMIT_TAG}
-        - latest
-      platforms: linux/amd64
+      insecure: true
 
   # 2. Assemble the thin Linux launcher bundle (source archive + SHA256SUMS).
   linux-bundle:
