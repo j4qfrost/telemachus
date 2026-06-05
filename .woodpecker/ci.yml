@@ -1,5 +1,8 @@
-# Self-hosted CI (snowman Forgejo + Woodpecker). GitHub Actions is intentionally
-# not used. Local signal: `woodpecker exec --pipeline-event push`.
+# Self-hosted CI (snowman Forgejo + Woodpecker) — tests + lint on every push/PR.
+# Releases live in .woodpecker/release.yml (OCI image + Linux bundle, on tag).
+# GitHub Actions is used ONLY for the macOS/Windows desktop bundles this Linux
+# agent can't build (.github/workflows/release.yml). Local signal for this file:
+# `woodpecker exec --pipeline-event push .woodpecker/ci.yml`.
 when:
   - event: [push, pull_request]
 

@@ -1,0 +1,79 @@
+# GitHub Actions — the cross-platform desktop bundles the self-hosted Linux
+# Woodpecker agent can't produce. Fires on a `vX.Y.Z` tag pushed to GitHub.
+#
+# Each leg runs on its NATIVE OS so the platform launcher is parse-checked there
+# before we ship it, then packages a relocatable source bundle (repo source +
+# the self-contained start-macos.sh / launch-windows.ps1, which create the venv
+# on first run — host provides Python, nothing platform-binary is bundled).
+#
+# Why source bundles and not a .dmg: build-macos-app.sh bakes an absolute
+# INSTALL_DIR into the .app at build time, so a CI-built .dmg points at the
+# runner's path and is dead on a user's Mac. build-macos-app.sh stays as a
+# build-on-your-own-Mac personal launcher; CI ships the bundle that actually
+# works on a clean machine.
+#
+# Woodpecker owns the Linux bundle + the OCI image (.woodpecker/release.yml).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  macos-bundle:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse-check the macOS launcher
+        run: bash -n start-macos.sh
+      - name: Build macOS source bundle
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          out="Telemachus-macos-${tag}.tar.gz"
+          git archive --format=tar.gz --prefix="telemachus-${tag}/" -o "$out" HEAD
+          shasum -a 256 "$out" > "$out.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-bundle
+          path: Telemachus-macos-*.tar.gz*
+
+  windows-bundle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse-check the Windows launcher
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/launch-windows.ps1", [ref]$null, [ref]$errors)
+          if ($errors) { $errors; exit 1 }
+      - name: Build Windows source bundle
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $out = "Telemachus-windows-$tag.zip"
+          git archive --format=zip --prefix="telemachus-$tag/" -o $out HEAD
+          (Get-FileHash $out -Algorithm SHA256).Hash | Out-File -Encoding ascii "$out.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: Telemachus-windows-*.zip*
+
+  publish:
+    needs: [macos-bundle, windows-bundle]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
