@@ -201,6 +201,20 @@ Local GPU *serving* of vLLM/SGLang needs Linux/WSL2; for a local model on Window
 Open `http://localhost:7000`, log in with the generated admin password,
 and configure everything else inside **Settings**.
 
+## Releases
+
+Tagged releases (`vX.Y.Z`) ship as:
+
+- **Container image** — `docker pull snowman.tailddc637.ts.net:8443/j4qfrost/telemachus:<tag>`.
+- **Linux desktop bundle** (Forgejo Release) — `Telemachus-linux-<tag>.tar.gz`; extract and
+  run `./start-linux.sh` (sets up the venv on first run), then `./install-desktop.sh` for an
+  app-menu entry.
+- **macOS / Windows bundles** (GitHub Release) — `Telemachus-macos-<tag>.tar.gz` /
+  `Telemachus-windows-<tag>.zip`; extract and run `./start-macos.sh` or `launch-windows.ps1`.
+
+All bundles are thin launchers — they carry the app source, not a bundled Python. See
+[docs/RELEASING.md](docs/RELEASING.md) for how releases are cut and the CI layout.
+
 ## Security Notes
 Telemachus is a self-hosted workspace with powerful local tools: shell access, file uploads, model downloads, web research, email/calendar integrations, and API tokens. Treat it like an admin console.
 

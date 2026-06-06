@@ -1,0 +1,41 @@
+# Self-hosted CI (snowman Forgejo + Woodpecker) — tests + lint on every push/PR.
+# Releases live in .woodpecker/release.yml (OCI image + Linux bundle, on tag).
+# GitHub Actions is used ONLY for the macOS/Windows desktop bundles this Linux
+# agent can't build (.github/workflows/release.yml). Local signal for this file:
+# `woodpecker exec --pipeline-event push .woodpecker/ci.yml`.
+when:
+  - event: [push, pull_request]
+
+steps:
+  - name: test
+    image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
+    commands:
+      # Single combined install keeps the layer/cache simple; dev deps add ruff +
+      # pytest(+randomly). No Node step — tests/test_compare_js.py self-skips when
+      # `node` is absent, so coverage does not regress and the image stays Node-free.
+      - python -m pip install --quiet --upgrade pip
+      - pip install -r requirements.txt -r requirements-dev.txt
+      - ruff check .
+      - python -m py_compile $(git ls-files '*.py')
+      - pytest -q
+
+  # Report-only supply-chain gate: surfaces known CVEs in the pinned deps but
+  # does NOT fail the build (failure: ignore). Flip to a hard gate by removing
+  # that line once any initial advisory backlog is triaged.
+  - name: pip-audit
+    image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
+    failure: ignore
+    commands:
+      - pip install --quiet pip-audit
+      - pip-audit -r requirements.txt -r requirements-dev.txt
+
+  # Reproducible Nix dev shell smoke — proves flake.nix resolves and the pinned
+  # py312 + ruff toolchain comes up. Tarball-pinned nixpkgs => no api.github.com dep.
+  - name: nix-shell
+    image: nixos/nix:2.24.9
+    environment:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+    commands:
+      - nix develop -c python --version
+      - nix develop -c ruff --version
+      - nix flake check

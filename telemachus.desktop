@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Telemachus
+GenericName=Self-hosted AI workspace
+Comment=Start the local Telemachus server and open the UI
+# Exec is rewritten to an absolute path to start-linux.sh by install-desktop.sh.
+Exec=start-linux.sh
+Icon=telemachus
+Terminal=false
+Categories=Network;Utility;
+StartupNotify=true

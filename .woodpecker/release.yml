@@ -1,0 +1,77 @@
+# Release pipeline — fires on a `vX.Y.Z` tag pushed to Forgejo.
+# Produces TWO "app images" on the self-hosted plane:
+#   1. an OCI/container image  -> Forgejo container registry
+#   2. a thin Linux launcher bundle (source + start-linux.sh) -> Forgejo Release
+# macOS/Windows desktop bundles are built separately on GitHub Actions
+# (.github/workflows/release.yml) — this Linux agent can't build them.
+#
+# Version = the tag itself (${CI_COMMIT_TAG}); the repo carries no version file.
+# Local dry-run: `woodpecker exec --pipeline-event tag .woodpecker/release.yml`
+#
+# PREREQUISITES (one-time, see docs/RELEASING.md):
+#   - Woodpecker repo secret `forgejo_release_token` = a Forgejo PAT with
+#     write:repository + write:package scope (the shared read-only `forgejo_token`
+#     is NOT enough). Used for both the registry push and the Release publish.
+#   - `forgejo:3000` is an HTTP (insecure) registry -> `insecure: true` below.
+# The image build uses kaniko (userspace) — no privileged plugin, so there is no
+# WOODPECKER_PLUGINS_PRIVILEGED requirement and the server-side linter stays happy.
+when:
+  - event: tag
+    ref: refs/tags/v*
+
+# Fleet-standard custom clone against the docker-internal Forgejo URL.
+# For a tag build CI_COMMIT_BRANCH is empty, so default the init branch to main;
+# the checkout is by SHA so the branch name is cosmetic.
+clone:
+  git:
+    image: alpine/git:2.52.0@sha256:19e4b384912f316e1ebd93a2f5277df2ed9252e441c96eccc56914a9e8e009e8
+    environment:
+      FORGEJO_USER:
+        from_secret: forgejo_user
+      FORGEJO_TOKEN:
+        from_secret: forgejo_token
+    commands:
+      - git init -b "${CI_COMMIT_BRANCH:-main}"
+      - 'git remote add origin "http://$$FORGEJO_USER:$$FORGEJO_TOKEN@forgejo:3000/${CI_REPO}.git"'
+      - 'git fetch --depth=1 origin "$$CI_COMMIT_SHA"'
+      - git checkout FETCH_HEAD
+
+steps:
+  # 1. Build + push the deployable container image to the Forgejo registry.
+  #    kaniko builds in userspace — NO privileged mode, no Docker daemon — so it
+  #    needs no WOODPECKER_PLUGINS_PRIVILEGED allowlist and doesn't trip the
+  #    server-side privileged-plugin linter (which would otherwise hard-fail
+  #    every push/PR run of ci.yml in this same .woodpecker/ dir too).
+  build-image:
+    image: woodpeckerci/plugin-kaniko:2.3.1@sha256:1dca5cffe785b96e040aa7b6acd5c644aaa6a35b89c5aaea6633f1186aa3a720
+    settings:
+      registry: forgejo:3000
+      repo: ${CI_REPO}
+      tags:
+        - ${CI_COMMIT_TAG}
+        - latest
+      username:
+        from_secret: forgejo_user
+      password:
+        from_secret: forgejo_release_token
+      insecure: true
+
+  # 2. Assemble the thin Linux launcher bundle (source archive + SHA256SUMS).
+  linux-bundle:
+    image: alpine/git:2.52.0@sha256:19e4b384912f316e1ebd93a2f5277df2ed9252e441c96eccc56914a9e8e009e8
+    commands:
+      - sh scripts/build-linux-bundle.sh "${CI_COMMIT_TAG}"
+
+  # 3. Create the Forgejo Release and attach the Linux bundle + checksums.
+  publish-release:
+    image: woodpeckerci/plugin-gitea-release:0.3.2@sha256:75dbc5dda5c6061024a2f4e7a628ded78724c6aa2771cf7604d1bf290a629494
+    settings:
+      base_url: http://forgejo:3000
+      api_key:
+        from_secret: forgejo_release_token
+      title: ${CI_COMMIT_TAG}
+      files:
+        - dist/Telemachus-linux-*.tar.gz
+        - dist/SHA256SUMS
+      # No `checksum:` — build-linux-bundle.sh already ships SHA256SUMS; the
+      # plugin's auto-generated sha256sum.txt would just duplicate it.
