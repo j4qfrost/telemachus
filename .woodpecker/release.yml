@@ -73,4 +73,5 @@ steps:
       files:
         - dist/Telemachus-linux-*.tar.gz
         - dist/SHA256SUMS
-      checksum: sha256
+      # No `checksum:` — build-linux-bundle.sh already ships SHA256SUMS; the
+      # plugin's auto-generated sha256sum.txt would just duplicate it.
