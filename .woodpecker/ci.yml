@@ -28,3 +28,14 @@ steps:
     commands:
       - pip install --quiet pip-audit
       - pip-audit -r requirements.txt -r requirements-dev.txt
+
+  # Reproducible Nix dev shell smoke — proves flake.nix resolves and the pinned
+  # py312 + ruff toolchain comes up. Tarball-pinned nixpkgs => no api.github.com dep.
+  - name: nix-shell
+    image: nixos/nix:2.24.9
+    environment:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+    commands:
+      - nix develop -c python --version
+      - nix develop -c ruff --version
+      - nix flake check

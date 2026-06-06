@@ -74,6 +74,19 @@ python -m uvicorn app:app --host 0.0.0.0 --port 7000
 Requirements: Python 3.11+. Cookbook also needs `tmux` for background model
 downloads and serves.
 
+#### Nix dev shell (optional, reproducible)
+A `flake.nix` provides a pinned Python 3.12 + `ruff` toolchain. This is a
+`requirements.txt` project (not Nix-packaged), so the shell is venv-friendly:
+it gives you the interpreter and pip; you still install the deps with pip.
+
+```bash
+nix develop                       # pinned python3.12 + ruff + native libs
+python -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+```
+
+`nix flake check` runs the same `ruff check` gate CI enforces, offline.
+
 ### Apple Silicon
 Docker on macOS cannot use the Metal GPU. For GPU-accelerated Cookbook on an
 M-series Mac, run Telemachus natively:
