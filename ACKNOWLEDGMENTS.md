@@ -110,6 +110,9 @@ Core (`requirements.txt`) and optional (`requirements-optional.txt`):
 | markdown | BSD-3-Clause |
 | icalendar | BSD-2-Clause |
 | caldav | GPL-3.0-or-later OR Apache-2.0 (dual; used under Apache-2.0) |
+| icalendar-searcher *(transitive, via caldav)* | **AGPL-3.0-or-later** — see note below |
+| recurring-ical-events *(transitive, via caldav)* | LGPL-3.0-or-later |
+| x-wr-timezone *(transitive, via recurring-ical-events)* | **LGPL-3.0-or-later** — see note below |
 | cryptography | Apache-2.0 / BSD-3-Clause |
 | bcrypt | Apache-2.0 |
 | MCP (Model Context Protocol SDK) | MIT |
@@ -138,8 +141,10 @@ credit:
 
 ### License-compatibility notes (for the repo's own LICENSE choice)
 
-The **core ships fully permissive** (MIT-compatible), so the two copyleft
-concerns from earlier are resolved:
+The **core is overwhelmingly permissive** (MIT-compatible). The first-party code
+is MIT and introduces no copyleft; the two long-standing first-party copyleft
+concerns are resolved (below). One residual item remains in the *transitive*
+supply chain via `caldav` — disclosed in the new transitive note further down.
 
 - **PDF text extraction** now uses **`pypdf`** (BSD-3-Clause) and **encoding
   detection** uses **`charset-normalizer`** (MIT). chardet (LGPL-2.1) has been
@@ -152,6 +157,21 @@ concerns from earlier are resolved:
   deployment (Artifex also sells a commercial PyMuPDF license that lifts this).
 - **`caldav`** (Python lib) is **dual-licensed GPL-3.0-or-later OR Apache-2.0**.
   Odysseus uses it under **Apache-2.0**, which is permissive and MIT-compatible.
+- **Transitive copyleft via `caldav` (core).** `caldav>=3.x` pulls two copyleft
+  packages unconditionally, so they ship in the default install whenever the
+  CalDAV sync feature (`src/caldav_sync.py`) is present:
+  - **`icalendar-searcher` (AGPL-3.0-or-later)** — used by `caldav` for ICS
+    search. As an unmodified, importable library it is *aggregated*, not combined
+    into the MIT code, and its AGPL covers only its own code. Because this app is
+    network-served, AGPL §13 would ask that users be offered that library's
+    source; this is already satisfied — the entire fork (and thus the path to its
+    dependency manifests) is public on GitHub + Forgejo. If you prefer to avoid
+    AGPL code entirely, pin an older `caldav` that does not require it or replace
+    the CalDAV integration.
+  - **`x-wr-timezone` (LGPL-3.0-or-later)** and **`recurring-ical-events`
+    (LGPL-3.0-or-later)** — used unmodified via dynamic Python import, which
+    satisfies LGPL's relink/replace requirement; no copyleft propagates to the
+    MIT code. Notice retention only.
 
 ---
 
