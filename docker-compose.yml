@@ -44,6 +44,15 @@ services:
         condition: service_healthy
       chromadb:
         condition: service_started
+    healthcheck:
+      # Mirrors the Dockerfile HEALTHCHECK; declared here too so `docker compose
+      # ps` / orchestrators see the app's health and the restart policy acts on a
+      # real liveness signal rather than just process exit.
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${APP_PORT:-7000}/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
     restart: unless-stopped
 
   chromadb:

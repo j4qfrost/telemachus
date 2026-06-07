@@ -44,6 +44,13 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 7000
 
+# Container-level liveness on the existing /api/health route. curl is already
+# installed above. Uses the in-container port (APP_PORT, default 7000) on
+# loopback so it works regardless of the published host bind. start-period
+# covers first-boot model/index init before the app answers.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${APP_PORT:-7000}/api/health" || exit 1
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # Bind host/port are env-driven. BIND_HOST defaults to 0.0.0.0 because inside a
 # container the process must listen on the container interface for the published
