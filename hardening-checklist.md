@@ -28,7 +28,10 @@ health wiring, and systemd sandboxing.
    ReadWritePaths, kernel/cgroup protections). (`telemachus-ui.service`)
 4. **DONE — Error-path test coverage.** Added behavioral tests pinning the catch-all 500
    contract (no traceback leak) and the health timestamp being timezone-aware.
-5. **OPEN (deferred) — pip-audit hard gate + hash-pinned deps.** See Supply chain below.
+5. **DONE (2026-06-07) — pip-audit hard gate + hash-pinned deps.** Lockfiles regenerated
+   with `--generate-hashes` (pip-compile via `uvx --python 3.12 --from pip-tools`, pins
+   unchanged); `pip install --require-hashes` dry-run resolves clean. CI `pip-audit` step
+   flipped from `failure: ignore` to a hard gate. See Supply chain / CI below.
 
 ---
 
@@ -65,9 +68,13 @@ health wiring, and systemd sandboxing.
 - [x] Lockfile committed — `requirements.txt` is pip-compiled & fully version-pinned
       (`# via` provenance), plus `requirements-dev.txt`, `requirements-optional.txt`.
 - [x] Vulnerability scan passes — `pip-audit -r requirements.txt`: **No known vulnerabilities
-      found** (ran locally this session). CI runs it report-only (`failure: ignore`).
-- [ ] **Hash-pinned deps — MISSING.** `requirements.txt` has 0 `--hash=` lines. Version pins
-      without hashes don't defend against a registry/index compromise. OPEN (see Findings).
+      found** (re-ran 2026-06-07). CI now runs it as a **hard gate** (no `failure: ignore`).
+- [x] **Hash-pinned deps — DONE (2026-06-07).** `requirements.txt` (2029 `--hash=` lines)
+      and `requirements-dev.txt` (34) regenerated with `pip-compile --generate-hashes`
+      (`uvx --python 3.12 --from pip-tools pip-compile`, constrained to the existing pins so
+      no version drift). `pip install --require-hashes --dry-run` resolves both clean.
+      Defends against index/registry tampering. (One pre-existing pin, `qh3==1.9.0`, is a
+      yanked release — left untouched to keep the pass surgical; flag for a future bump.)
 - [x] Dependabot configured — pip + github-actions + docker ecosystems, weekly.
 - [x] Dependency count reviewed — Node dropped from runtime (fork delta); deps are purposeful.
 - [ ] License audit — delegate to `@license-auditor` (writes `license-audit.md`). A `licenses/`
@@ -76,10 +83,9 @@ health wiring, and systemd sandboxing.
 ## CI (.woodpecker/ci.yml — snowman Forgejo + Woodpecker)
 - [x] Runs on every push + pull_request.
 - [x] Runs install → `ruff check` → `py_compile` → `pytest -q`.
-- [x] pip-audit step (report-only).
+- [x] pip-audit step — **hard gate** (a vuln fails the pipeline; flipped 2026-06-07).
 - [x] Nix devShell smoke + `nix flake check` (proves reproducible toolchain resolves).
-- [~] pip-audit is `failure: ignore` — intentional bootstrap; flip to hard gate once the
-      pinned set is clean (it currently is — candidate to flip). OPEN, low-risk.
+- [x] pip-audit hard gate — **flipped 2026-06-07** (`failure: ignore` removed). Set is clean.
 - [ ] No coverage step (no coverage tooling). OPEN.
 - [x] macOS/Windows desktop bundles built via GitHub Actions (release.yml), pinned by digest.
 
@@ -130,12 +136,12 @@ Local checks run this session (shared-venv `.venv`, Python 3.14):
 
 ## Risk-tiered remaining work
 
-**Tier 1 (do next — supply-chain / signal):**
-- Hash-pin `requirements*.txt` (`pip-compile --generate-hashes`) and install with
-  `pip install --require-hashes`. Defends against index/registry tampering. Needs a clean
-  regenerate so transitive hashes are complete.
-- Flip the CI `pip-audit` step from `failure: ignore` to a hard gate (the set is currently
-  clean, so the cost is zero today).
+**Tier 1 — COMPLETED 2026-06-07:**
+- [x] Hash-pinned `requirements.txt` + `requirements-dev.txt` (`pip-compile --generate-hashes`,
+  pins held constant via constraint, no version drift). `pip install --require-hashes --dry-run`
+  resolves both lockfiles clean. Defends against index/registry tampering.
+- [x] Flipped the CI `pip-audit` step from `failure: ignore` to a hard gate. Set is clean today,
+  so zero cost; a future vuln now fails the pipeline.
 
 **Tier 2 (quality gates):**
 - Add `pytest-cov`, measure coverage, set a floor in CI (the suite is broad; a number would

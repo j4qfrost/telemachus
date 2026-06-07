@@ -19,12 +19,10 @@ steps:
       - python -m py_compile $(git ls-files '*.py')
       - pytest -q
 
-  # Report-only supply-chain gate: surfaces known CVEs in the pinned deps but
-  # does NOT fail the build (failure: ignore). Flip to a hard gate by removing
-  # that line once any initial advisory backlog is triaged.
+  # Hard supply-chain gate: a known CVE in the pinned deps now FAILS the build.
+  # Flipped from report-only (failure: ignore) once the pinned set was clean.
   - name: pip-audit
     image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
-    failure: ignore
     commands:
       - pip install --quiet pip-audit
       - pip-audit -r requirements.txt -r requirements-dev.txt
