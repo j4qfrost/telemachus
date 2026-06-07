@@ -462,6 +462,22 @@ async def llm_service_error_handler(request: Request, exc: LLMServiceError):
 async def web_search_error_handler(request: Request, exc: WebSearchError):
     return JSONResponse(status_code=502, content={"error": "WEB_SEARCH_ERROR", "message": str(exc)})
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all so an unhandled error never leaks a traceback to the client.
+
+    Untrusted input reaching an un-typed code path would otherwise surface as
+    Starlette's default 500 (and, with a debug server, the full traceback). We
+    log the real exception server-side with the request path for triage and
+    return an opaque, structured 500 to the caller. Typed handlers above still
+    win — FastAPI dispatches the most specific handler first.
+    """
+    logger.error("Unhandled exception on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "INTERNAL_ERROR", "message": "An internal error occurred."},
+    )
+
 # ========= WEBHOOK MANAGER =========
 from src.webhook_manager import WebhookManager
 
@@ -729,7 +745,9 @@ async def get_version():
 
 @app.get("/api/health")
 async def health_check() -> Dict[str, str]:
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    # timezone-aware UTC: the naive utcnow() form is deprecated and slated for removal.
+    from datetime import timezone
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 @app.get("/api/runtime")
 async def runtime_info() -> Dict[str, object]:

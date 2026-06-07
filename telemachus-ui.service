@@ -19,6 +19,24 @@ Restart=always
 RestartSec=3
 EnvironmentFile=-__INSTALL_DIR__/.env
 
+# --- Sandboxing (additive hardening; safe defaults for a loopback web app) ---
+# These reduce blast radius if the process is compromised. Conservative on
+# purpose: the app writes under its own install dir (data/, logs/), so we keep
+# that path writable and only lock down everything else. If you enable optional
+# features that need broader FS access (e.g. Cookbook building llama.cpp), relax
+# the relevant directive rather than dropping the whole block.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=__INSTALL_DIR__
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
 # Opt-in secret injection from a manager (sigil / Vaultwarden). Set SECRET_BACKEND
 # and TELEMACHUS_SECRET_* in the .env above, then render into a tmpfs file and
 # SOURCE it at launch — systemd reads EnvironmentFile before ExecStartPre runs, so
