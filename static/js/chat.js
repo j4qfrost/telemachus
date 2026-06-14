@@ -1833,6 +1833,10 @@ import createResearchSynapse from './researchSynapse.js';
               } else if (json.type === 'compacted') {
                 if (!_isBg) {
                   uiModule.showToast('Context compacted — older messages summarized');
+                  // Surface the fresh summary in the always-visible bar.
+                  if (window.sessionModule && window.sessionModule.refreshSummaryBar) {
+                    window.sessionModule.refreshSummaryBar(streamSessionId);
+                  }
                 }
               } else if (json.type === 'metrics') {
                 metrics = json.data;

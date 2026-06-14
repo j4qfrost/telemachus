@@ -32,6 +32,26 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
+
+def _extract_latest_summary(history):
+    """Return (summary_body, timestamp, summarized_count) for the most recent
+    compaction summary in `history`, or (None, None, None).
+
+    Compaction writes its body as "[Conversation summary …]\\n\\n{summary}" with
+    metadata.compacted set; the separate visible "**Conversation compacted**"
+    marker carries no summary body, so the content check below skips it. Scans
+    newest-first so the freshest summary wins.
+    """
+    for m in reversed(list(history or [])):
+        meta = getattr(m, "metadata", None) or {}
+        content = getattr(m, "content", None) or ""
+        if meta.get("compacted") and "[Conversation summary" in content:
+            body = content.split("]", 1)[1] if "]" in content else content
+            body = body.strip()
+            if body:
+                return body, meta.get("timestamp"), meta.get("summarized_count")
+    return None, None, None
+
 def _pick_endpoint_for_sort():
     """Pick model endpoint for auto-sort LLM call — uses utility endpoint setting, falls back to default."""
     from src.endpoint_resolver import resolve_endpoint
@@ -778,6 +798,25 @@ def setup_session_routes(session_manager: SessionManager, config: dict, webhook_
             "kept": len(recent),
             "message_count": len(new_history),
         }
+
+    @router.get("/session/{session_id}/summary")
+    def session_summary(request: Request, session_id: str):
+        """Return the most recent compaction summary for a session, or null.
+
+        Read-only: this surfaces the structured summary that compaction (auto
+        at 85% context, or the manual /session/{id}/compact endpoint) already
+        produced — it does not generate one. Powers the always-visible summary
+        bar in the chat UI so the "what are we doing / what's next" context
+        stays in front of the user. Mirrors the Claude Code statusline footer.
+        """
+        _verify_session_owner(request, session_id)
+        try:
+            session = session_manager.get_session(session_id)
+        except KeyError:
+            raise HTTPException(404, f"Session {session_id} not found")
+
+        body, ts, count = _extract_latest_summary(session.history)
+        return {"summary": body, "timestamp": ts, "summarized_count": count}
 
     @router.post("/sessions/auto-sort")
     def auto_sort_sessions(request: Request, skip_llm: bool = False):
