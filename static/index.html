@@ -968,6 +968,16 @@
       }).catch(function(){});
     })();
     </script>
+    <!-- Always-visible session summary (latest compaction). Collapsed to a few
+         lines; click to expand. Populated by sessions.js refreshSummaryBar(). -->
+    <div id="session-summary-bar" class="session-summary-bar" hidden>
+      <button type="button" id="session-summary-toggle" class="session-summary-toggle"
+              aria-expanded="false" title="Toggle session summary">
+        <span class="session-summary-icon" aria-hidden="true">📝</span>
+        <span id="session-summary-text" class="session-summary-text"></span>
+        <span class="session-summary-chevron" aria-hidden="true">▾</span>
+      </button>
+    </div>
     <div id="chat-history" class="chat-history" role="log" aria-live="polite"></div>
 
     <!-- Attachments strip -->

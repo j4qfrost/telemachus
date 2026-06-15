@@ -2523,6 +2523,72 @@ body.bg-pattern-sparkles {
       margin-left: 6px;
     }
     .chat-meta-count:empty { display: none; }
+
+    /* Always-visible session summary bar — sticky at the top of the chat pane,
+       above the message log. Shows the latest compaction summary so the
+       "what / next" context stays in front of the user. Collapsed = one line;
+       click to expand the full structured markdown. */
+    .session-summary-bar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: 0 0 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--panel) 88%, var(--accent-warm) 12%);
+      backdrop-filter: blur(4px);
+      overflow: hidden;
+    }
+    .session-summary-bar[hidden] { display: none; }
+    .session-summary-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 10px;
+      background: transparent;
+      border: 0;
+      color: color-mix(in srgb, var(--fg) 80%, transparent);
+      font: inherit;
+      font-size: 0.82em;
+      line-height: 1.4;
+      text-align: left;
+      cursor: pointer;
+    }
+    .session-summary-toggle:hover {
+      background: color-mix(in srgb, var(--fg) 6%, transparent);
+    }
+    .session-summary-icon { flex: 0 0 auto; opacity: 0.85; }
+    .session-summary-text {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .session-summary-chevron {
+      flex: 0 0 auto;
+      opacity: 0.6;
+      transition: transform 0.15s ease;
+    }
+    /* Expanded: let the text wrap and render full markdown, cap the height so a
+       long summary scrolls instead of swallowing the chat. */
+    .session-summary-bar.expanded .session-summary-text {
+      white-space: normal;
+      overflow-y: auto;
+      max-height: 40vh;
+    }
+    .session-summary-bar.expanded .session-summary-chevron {
+      transform: rotate(180deg);
+    }
+    .session-summary-bar.expanded .session-summary-text :first-child { margin-top: 0; }
+    .session-summary-bar.expanded .session-summary-text :last-child { margin-bottom: 0; }
+    .session-summary-bar.expanded .session-summary-text h2,
+    .session-summary-bar.expanded .session-summary-text h3 {
+      font-size: 0.95em;
+      margin: 0.5em 0 0.2em;
+    }
+
     /* Session cost indicator (next to chevron in header) */
     .session-cost-display {
       font-size: inherit;

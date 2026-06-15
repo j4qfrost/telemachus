@@ -1536,6 +1536,8 @@ export async function selectSession(id, { keepSidebar = false } = {}) {
     if (currentMetaEl) {
       currentMetaEl.textContent = meta ? meta.name : 'Telemachus Chat';
     }
+    // Refresh the always-visible summary bar for the newly selected session.
+    refreshSummaryBar(id);
     // Update model picker visibility
     updateModelPicker();
 
@@ -3023,11 +3025,77 @@ export function setSessionHasDocs(sessionId, hasDocs) {
 }
 
 // Export all functions to window for use in main app
+// ---- Always-visible session summary bar -----------------------------------
+// Surfaces the latest compaction summary for the current session (read-only;
+// see GET /api/session/{id}/summary). Collapsed to a one-line gist, click to
+// expand the full structured markdown. Refreshed on session switch and on the
+// `compacted` SSE event (wired from chat.js).
+let _summaryExpanded = false;
+
+function _renderSummaryBar() {
+  const bar = document.getElementById('session-summary-bar');
+  const textEl = document.getElementById('session-summary-text');
+  const toggle = document.getElementById('session-summary-toggle');
+  if (!bar || !textEl) return;
+  const summary = bar.dataset.summary || '';
+  bar.classList.toggle('expanded', _summaryExpanded);
+  if (toggle) toggle.setAttribute('aria-expanded', _summaryExpanded ? 'true' : 'false');
+  if (_summaryExpanded) {
+    try {
+      textEl.innerHTML = markdownModule.mdToHtml ? markdownModule.mdToHtml(summary) : summary;
+    } catch (e) {
+      textEl.textContent = summary;
+    }
+  } else {
+    // One-line gist: strip headers / bold / bullets, collapse whitespace.
+    textEl.textContent = summary
+      .replace(/^#+\s*/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+}
+
+export async function refreshSummaryBar(id) {
+  const bar = document.getElementById('session-summary-bar');
+  if (!bar) return;
+  const sid = id || currentSessionId;
+  if (!sid) { bar.hidden = true; return; }
+  try {
+    const res = await fetch(`${API_BASE}/api/session/${sid}/summary`);
+    if (!res.ok) { bar.hidden = true; return; }
+    const data = await res.json();
+    const summary = data && data.summary;
+    if (!summary) { bar.dataset.summary = ''; bar.hidden = true; return; }
+    bar.dataset.summary = summary;
+    _summaryExpanded = false; // start collapsed on each refresh
+    _renderSummaryBar();
+    bar.hidden = false;
+  } catch (e) {
+    bar.hidden = true;
+  }
+}
+
+// Wire the expand/collapse toggle once (ES modules are deferred, so the DOM
+// exists by the time this runs).
+(function _wireSummaryToggle() {
+  const toggle = document.getElementById('session-summary-toggle');
+  if (toggle && !toggle._wired) {
+    toggle._wired = true;
+    toggle.addEventListener('click', () => {
+      _summaryExpanded = !_summaryExpanded;
+      _renderSummaryBar();
+    });
+  }
+})();
+
 const sessionModule = {
   initDependencies,
   renderSessionList,
   loadSessions,
   selectSession,
+  refreshSummaryBar,
   createDirectChat,
   materializePendingSession,
   hasPendingChat,
