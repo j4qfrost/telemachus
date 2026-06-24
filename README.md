@@ -87,6 +87,34 @@ pip install -r requirements.txt -r requirements-dev.txt
 
 `nix flake check` runs the same `ruff check` gate CI enforces, offline.
 
+> On **Arch / Manjaro**, the system Python is externally-managed (PEP 668) and
+> the convention is to install Python packages with `pacman`, not `pip`. Use the
+> Arch path below instead of the generic snippet above. `./start-linux.sh`
+> detects Arch automatically and runs the bootstrap for you.
+
+### Arch Linux (pacman)
+```bash
+git clone https://snowman.tailddc637.ts.net:8443/j4qfrost/telemachus.git
+cd telemachus
+./bootstrap-arch.sh        # pacman for repo deps + venv for the rest
+./start-linux.sh           # launch (also auto-bootstraps on first run)
+```
+
+`bootstrap-arch.sh` installs everything Arch packages (fastapi, uvicorn,
+pydantic, numpy, cryptography, …) system-wide via `pacman`, creates a
+`--system-site-packages` venv so those packages are visible, then `pip`-installs
+only the five packages Arch does not package (`mcp`, `croniter`, `fastembed`,
+`chromadb-client`, `youtube-transcript-api`) into the venv, pinned. Trade-off:
+pacman-sourced packages follow Arch's versions, not the `requirements.txt` pins;
+the pip-fallback packages stay pinned. Flags:
+
+- `TELEMACHUS_NONINTERACTIVE=1` — pass `--noconfirm` to pacman.
+- `TELEMACHUS_USE_AUR=1` — try the AUR (yay/paru) for the not-in-repos packages
+  before falling back to pip.
+
+For a fully-pinned, reproducible install instead, use the generic venv+pip
+snippet above (pip inside the activated venv is allowed under PEP 668).
+
 ### Apple Silicon
 Docker on macOS cannot use the Metal GPU. For GPU-accelerated Cookbook on an
 M-series Mac, run Telemachus natively:

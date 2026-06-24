@@ -50,25 +50,40 @@ for cand in python3.13 python3.12 python3.11 python3; do
 done
 [ -n "$PY" ] || die "Python 3.11+ not found. Install it (e.g. 'sudo pacman -S python' or 'sudo apt install python3') and re-run."
 
-# ── Venv: reuse an existing one, else create .venv ──
+# ── Detect Arch family (pacman convention: deps come from pacman, not pip) ──
+OS_ID=""; OS_ID_LIKE=""
+if [ -r /etc/os-release ]; then . /etc/os-release; OS_ID="${ID:-}"; OS_ID_LIKE="${ID_LIKE:-}"; fi
+IS_ARCH=0
+case " $OS_ID $OS_ID_LIKE " in *" arch "*) IS_ARCH=1 ;; esac
+
+# ── Venv: reuse one that can import uvicorn, else create it. We check the
+# module (not a .venv/bin/uvicorn script) so a --system-site-packages venv whose
+# uvicorn came from pacman is recognised too. ──
 VENV=""
 for v in .venv venv; do
-  if [ -x "$REPO_DIR/$v/bin/uvicorn" ]; then VENV="$v"; break; fi
+  if [ -x "$REPO_DIR/$v/bin/python" ] && "$REPO_DIR/$v/bin/python" -c 'import uvicorn' 2>/dev/null; then
+    VENV="$v"; break
+  fi
 done
 if [ -z "$VENV" ]; then
   VENV=".venv"
-  say "Creating venv ($VENV) and installing dependencies (first run only)…"
-  "$PY" -m venv "$VENV"
-  "$REPO_DIR/$VENV/bin/pip" install --quiet --upgrade pip
-  "$REPO_DIR/$VENV/bin/pip" install -r requirements.txt
-  ODYSSEUS_SKIP_RUN_HINT=1 "$REPO_DIR/$VENV/bin/python" setup.py
+  if [ "$IS_ARCH" = 1 ]; then
+    say "Arch Linux detected — bootstrapping dependencies via pacman (see bootstrap-arch.sh)…"
+    "$REPO_DIR/bootstrap-arch.sh"
+  else
+    say "Creating venv ($VENV) and installing dependencies (first run only)…"
+    "$PY" -m venv "$VENV"
+    "$REPO_DIR/$VENV/bin/pip" install --quiet --upgrade pip
+    "$REPO_DIR/$VENV/bin/pip" install -r requirements.txt
+    ODYSSEUS_SKIP_RUN_HINT=1 "$REPO_DIR/$VENV/bin/python" setup.py
+  fi
 fi
-UVICORN="$REPO_DIR/$VENV/bin/uvicorn"
+PYBIN="$REPO_DIR/$VENV/bin/python"
 
 # ── Launch the server; stop it when this script exits ──
 mkdir -p logs
 say "Starting Telemachus on $URL …"
-"$UVICORN" app:app --host 127.0.0.1 --port "$PORT" >>logs/telemachus-app.log 2>&1 &
+"$PYBIN" -m uvicorn app:app --host 127.0.0.1 --port "$PORT" >>logs/telemachus-app.log 2>&1 &
 SERVER_PID=$!
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 
