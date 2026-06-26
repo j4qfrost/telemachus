@@ -27,11 +27,10 @@ steps:
     # cargo-audit / govulncheck. Installed as a standalone tool so its own
     # deps never perturb the pinned runtime set in requirements.txt.
     #
-    # ADVISORY (|| true) UNTIL the current backlog is cleared: as of the
-    # hardening pass requirements.txt has 8 known CVEs (starlette,
-    # python-multipart, cryptography, pydantic-settings, pypdf). Once those are
-    # bumped via `pip-compile --upgrade` (see hardening-checklist.md), DROP the
-    # `|| true` so this becomes a hard gate that fails fast on new advisories.
+    # HARD GATE: the original 8-CVE backlog (starlette, python-multipart,
+    # cryptography, pydantic-settings, pypdf) was cleared by the surgical
+    # re-resolve in this branch, so pip-audit now fails the build on any new
+    # advisory. Re-resolve the offending package(s) to bring it back green.
     commands:
       - python -m pip install --quiet --upgrade pip pip-audit
-      - pip-audit -r requirements.txt --desc || true
+      - pip-audit -r requirements.txt --desc
