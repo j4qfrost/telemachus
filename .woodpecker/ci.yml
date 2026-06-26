@@ -18,3 +18,20 @@ steps:
       - ruff check .
       - python -m py_compile $(git ls-files '*.py')
       - pytest -q
+
+  - name: audit
+    image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
+    # Supply-chain CVE scan of the pinned runtime lockfile. pip-audit is the
+    # canonical Python scanner (PyPA project, queries OSV + PyPI advisory DB);
+    # per lang-assessment-2026 § Supply chain it is the pip equivalent of
+    # cargo-audit / govulncheck. Installed as a standalone tool so its own
+    # deps never perturb the pinned runtime set in requirements.txt.
+    #
+    # ADVISORY (|| true) UNTIL the current backlog is cleared: as of the
+    # hardening pass requirements.txt has 8 known CVEs (starlette,
+    # python-multipart, cryptography, pydantic-settings, pypdf). Once those are
+    # bumped via `pip-compile --upgrade` (see hardening-checklist.md), DROP the
+    # `|| true` so this becomes a hard gate that fails fast on new advisories.
+    commands:
+      - python -m pip install --quiet --upgrade pip pip-audit
+      - pip-audit -r requirements.txt --desc || true

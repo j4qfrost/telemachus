@@ -4,3 +4,4 @@ pytest
 pytest-asyncio
 pytest-randomly   # randomizes test order every run — catches order-dependent state leaks
 ruff              # lint + format; config in pyproject.toml [tool.ruff]
+pip-audit         # supply-chain CVE scan of the pinned requirements.txt (run in CI)
