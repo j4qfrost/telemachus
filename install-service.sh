@@ -16,14 +16,17 @@ BIND_HOST="${BIND_HOST:-127.0.0.1}"
 APP_PORT="${APP_PORT:-7000}"
 
 # Detect the virtualenv (.venv preferred, then venv) so ExecStart points at a
-# real uvicorn rather than a guessed path.
-if [ -x "$INSTALL_DIR/.venv/bin/uvicorn" ]; then
+# real interpreter that can import uvicorn. We test the module rather than a
+# .venv/bin/uvicorn script, so a --system-site-packages venv whose uvicorn came
+# from pacman (Arch) is detected too.
+if [ -x "$INSTALL_DIR/.venv/bin/python" ] && "$INSTALL_DIR/.venv/bin/python" -c 'import uvicorn' 2>/dev/null; then
   VENV=".venv"
-elif [ -x "$INSTALL_DIR/venv/bin/uvicorn" ]; then
+elif [ -x "$INSTALL_DIR/venv/bin/python" ] && "$INSTALL_DIR/venv/bin/python" -c 'import uvicorn' 2>/dev/null; then
   VENV="venv"
 else
-  echo "Error: no .venv or venv with uvicorn under $INSTALL_DIR — create one first:" >&2
-  echo "       python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
+  echo "Error: no .venv or venv that can import uvicorn under $INSTALL_DIR — create one first:" >&2
+  echo "       Arch:  ./bootstrap-arch.sh" >&2
+  echo "       other: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
   exit 1
 fi
 
