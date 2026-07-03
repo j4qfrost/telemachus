@@ -12,6 +12,27 @@ import sys
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+
+def _is_arch() -> bool:
+    """True on Arch-family distros (Arch, Manjaro, EndeavourOS, …)."""
+    try:
+        with open("/etc/os-release", encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+    fields = dict(
+        line.split("=", 1) for line in text.splitlines() if "=" in line
+    )
+    ids = (fields.get("ID", "") + " " + fields.get("ID_LIKE", "")).replace('"', "")
+    return "arch" in ids.split()
+
+
+def _pip_hint(spec: str) -> str:
+    """Install hint, Arch-aware. On Arch the convention is pacman, not pip."""
+    if _is_arch():
+        return f"Arch: ./bootstrap-arch.sh   (or, inside a venv: pip install {spec})"
+    return f"Run: pip install {spec}"
+
 DIRS = [
     DATA_DIR,
     os.path.join(DATA_DIR, "uploads"),
@@ -72,7 +93,7 @@ def create_default_admin():
         print("        ** Change it after first login. Set ODYSSEUS_ADMIN_PASSWORD to choose your own. **")
     except ImportError:
         print("  [warn] bcrypt not installed — skipping admin user creation")
-        print("         Run: pip install bcrypt")
+        print(f"         {_pip_hint('bcrypt')}")
 
 
 def create_env():
@@ -169,7 +190,7 @@ def check_deps():
             missing.append(mod)
     if missing:
         print(f"\n  [warn] Missing packages: {', '.join(missing)}")
-        print("         Run: pip install -r requirements.txt")
+        print(f"         {_pip_hint('-r requirements.txt')}")
     else:
         print("  [ok] All core dependencies installed")
 
