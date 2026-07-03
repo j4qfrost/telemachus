@@ -8,7 +8,9 @@ Distribution intent: permissive-OSS fork, **distributed** as a SaaS-style / netw
 
 ## Verdict
 
-**Compatible with attribution work — two undisclosed copyleft transitive deps need a decision.**
+**Compatible with attribution work.** The AGPL item below was **RESOLVED 2026-06-28** by pinning `caldav<2.2` (→2.1.2), which removes `icalendar-searcher` from the lock entirely; one LGPL transitive (`x-wr-timezone`) remains and is satisfied by attribution.
+
+> **Update 2026-06-28 (caldav AGPL resolved).** `requirements.in` now pins `caldav<2.2`. The AGPL dep `icalendar-searcher` was introduced in the caldav **2.2.x** line (not 3.x as stated below) — `caldav<3` would NOT have shed it; `2.1.x` is the last clean release. caldav now resolves to 2.1.2, `icalendar-searcher` is gone from `requirements.txt`/`requirements-dev.txt`, and `src/caldav_sync.py` (which only uses core client/discovery/event-read, never the searcher) still works — 340 tests green. The "Options" under the finding below are kept for history; option 2 was taken (with the corrected `<2.2` floor).
 
 The fork itself is clean on the *fork-compliance* axis: the `LICENSE` file is byte-identical
 to upstream's (zero diff vs `upstream/main`), and upstream's attribution infrastructure

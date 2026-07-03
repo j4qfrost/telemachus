@@ -30,7 +30,7 @@ python-dateutil
 # CalDAV sync (src/caldav_sync.py). Handles PROPFIND discovery + REPORT
 # fetch across Radicale, Nextcloud, Apple, Fastmail; we'd be reinventing
 # the protocol without it.
-caldav
+caldav<2.2  # <2.2 avoids icalendar-searcher (AGPL-3.0), a hard dep of caldav 2.2+; see license-audit.md
 cryptography
 bcrypt
 mcp
