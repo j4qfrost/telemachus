@@ -1,0 +1,70 @@
+# Self-hosted CI (Forgejo Actions) — tests + lint on every push/PR.
+# Releases live in .forgejo/workflows/release.yml (OCI image + Linux bundle, on tag).
+# GitHub Actions is used ONLY for the macOS/Windows desktop bundles this Linux
+# runner can't build (.github/workflows/release.yml).
+
+name: ci
+on:
+  pull_request: {}
+  push: {}
+
+defaults:
+  run:
+    shell: sh
+
+jobs:
+  python:
+    runs-on: docker
+    container:
+      image: python:3.12@sha256:7557a379eb0d26af063ce19906a463c7f60fb4bd03a39dea2e7ee49b7aaafc0e
+    steps:
+      - name: checkout
+        # Fleet checkout (CI-MIGRATION-RUNBOOK.md): job images may lack git/node.
+        uses: docker://alpine/git:2.54.1
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        with:
+          entrypoint: /bin/sh
+          args: -ec "u=${FORGE_CLONE_BASE:-https://git.legionofweird.dev}; u=${u%%://*}://ci:$TOKEN@${u#*://}/$REPO.git; git init -q; git fetch -q --depth=1 $u $SHA || git fetch -q --depth=1 $u $REF; git checkout -qf FETCH_HEAD"
+      - name: test
+        run: |
+          python -m pip install --quiet --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+          ruff check .
+          python -m py_compile $(git ls-files '*.py')
+          pytest -q
+      # Hard supply-chain gate: a known CVE in the pinned deps now FAILS the build.
+      # Flipped from report-only (failure: ignore) once the pinned set was clean.
+      - name: pip-audit
+        run: |
+          pip install --quiet pip-audit
+          pip-audit -r requirements.txt -r requirements-dev.txt
+  nix-shell:
+    runs-on: docker
+    needs: [python]
+    container:
+      image: nixos/nix:2.24.9
+    steps:
+      - name: checkout
+        # Fleet checkout (CI-MIGRATION-RUNBOOK.md): job images may lack git/node.
+        uses: docker://alpine/git:2.54.1
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        with:
+          entrypoint: /bin/sh
+          args: -ec "u=${FORGE_CLONE_BASE:-https://git.legionofweird.dev}; u=${u%%://*}://ci:$TOKEN@${u#*://}/$REPO.git; git init -q; git fetch -q --depth=1 $u $SHA || git fetch -q --depth=1 $u $REF; git checkout -qf FETCH_HEAD"
+      # Reproducible Nix dev shell smoke — proves flake.nix resolves and the pinned
+      # py312 + ruff toolchain comes up. Tarball-pinned nixpkgs => no api.github.com dep.
+      - name: nix-shell
+        env:
+          NIX_CONFIG: experimental-features = nix-command flakes
+        run: |
+          nix develop -c python --version
+          nix develop -c ruff --version
+          nix flake check
