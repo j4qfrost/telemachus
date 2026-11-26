@@ -1,0 +1,83 @@
+# Release workflow — fires on a `vX.Y.Z` tag pushed to Forgejo.
+# Produces TWO "app images" on the self-hosted plane:
+#   1. an OCI/container image  -> Forgejo container registry (git.legionofweird.dev)
+#   2. a thin Linux launcher bundle (source + start-linux.sh) -> Forgejo Release
+# macOS/Windows desktop bundles are built separately on GitHub Actions
+# (.github/workflows/release.yml) — this Linux runner can't build them.
+#
+# Version = the tag itself; the repo carries no version file.
+#
+# PREREQUISITES (one-time, see docs/RELEASING.md):
+#   - Forgejo Actions repo secret `RELEASE_TOKEN` = a Forgejo PAT with
+#     write:repository + write:package scope. Used for both the registry push
+#     and the Release publish; `RELEASE_USER` = that PAT's user.
+# The image build uses kaniko (userspace) — no privileged container, no Docker daemon.
+
+name: release
+on:
+  push:
+    tags: ['v*']
+
+defaults:
+  run:
+    shell: sh
+
+jobs:
+  release:
+    runs-on: docker
+    container:
+      image: alpine/git:2.52.0@sha256:19e4b384912f316e1ebd93a2f5277df2ed9252e441c96eccc56914a9e8e009e8
+    env:
+      TAG: ${{ github.ref_name }}
+      REGISTRY: git.legionofweird.dev
+    steps:
+      - name: checkout
+        # Fleet checkout (CI-MIGRATION-RUNBOOK.md): job images may lack git/node.
+        uses: docker://alpine/git:2.54.1
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        with:
+          entrypoint: /bin/sh
+          args: -ec "u=${FORGE_CLONE_BASE:-https://git.legionofweird.dev}; u=${u%%://*}://ci:$TOKEN@${u#*://}/$REPO.git; git init -q; git fetch -q --depth=1 $u $SHA || git fetch -q --depth=1 $u $REF; git checkout -qf FETCH_HEAD"
+      - name: registry-auth
+        env:
+          RELEASE_USER: ${{ secrets.RELEASE_USER }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          test -n "$RELEASE_TOKEN" || { echo "RELEASE_TOKEN secret not set (docs/RELEASING.md)"; exit 1; }
+          mkdir -p .kaniko
+          auth=$(printf '%s:%s' "$RELEASE_USER" "$RELEASE_TOKEN" | base64 | tr -d '\n')
+          printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY" "$auth" > .kaniko/config.json
+
+      # 1. Build + push the deployable container image to the Forgejo registry.
+      - name: build-image
+        uses: docker://gcr.io/kaniko-project/executor:v1.24.0
+        env:
+          DOCKER_CONFIG: ${{ github.workspace }}/.kaniko
+        with:
+          args: --context=dir://${{ github.workspace }} --dockerfile=${{ github.workspace }}/Dockerfile --ignore-path=${{ github.workspace }}/.kaniko --destination=git.legionofweird.dev/${{ github.repository }}:${{ github.ref_name }} --destination=git.legionofweird.dev/${{ github.repository }}:latest
+
+      # 2. Assemble the thin Linux launcher bundle (source archive + SHA256SUMS).
+      - name: linux-bundle
+        run: |
+          rm -rf .kaniko
+          sh scripts/build-linux-bundle.sh "$TAG"
+
+      # 3. Create the Forgejo Release and attach the Linux bundle + checksums.
+      #    build-linux-bundle.sh already ships SHA256SUMS.
+      - name: publish-release
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+        run: |
+          apk add --no-cache -q curl jq
+          id=$(curl -fsS -X POST -H "Authorization: token $RELEASE_TOKEN" -H 'Content-Type: application/json' \
+                 -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\"}" "$API/releases" | jq -r .id)
+          for f in dist/Telemachus-linux-*.tar.gz dist/SHA256SUMS; do
+            curl -fsS -X POST -H "Authorization: token $RELEASE_TOKEN" \
+              -F "attachment=@$f" "$API/releases/$id/assets?name=$(basename "$f")" >/dev/null
+            echo "attached $f"
+          done
