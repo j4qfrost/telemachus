@@ -17,7 +17,6 @@ build/
 .git/
 .gitea/
 .github/
-.woodpecker/
 .claude/
 .aider*
 .playwright-mcp/

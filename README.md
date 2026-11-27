@@ -7,7 +7,7 @@
 
 A self-hosted AI workspace -- meant to be the self-hosted version of the UI experience you get from ChatGPT and Claude. But with more jank and fun. Running on your own hardware, with your own data -- local-first, privacy-first, and no trojan.
 
-> **Telemachus is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus)** (MIT), adapted for a self-hosted tailnet deploy: snowman Ollama defaults, Woodpecker CI, a Node-free runtime image, tailnet-only binding, and secrets sourced from a manager (sigil / Vaultwarden) instead of a committed `.env`. Upstream attribution is preserved in [`ACKNOWLEDGMENTS.md`](ACKNOWLEDGMENTS.md).
+> **Telemachus is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus)** (MIT), adapted for a self-hosted tailnet deploy: snowman Ollama defaults, Forgejo Actions CI, a Node-free runtime image, tailnet-only binding, and secrets sourced from a manager (sigil / Vaultwarden) instead of a committed `.env`. Upstream attribution is preserved in [`ACKNOWLEDGMENTS.md`](ACKNOWLEDGMENTS.md).
 
 ## Features
   - **Chat** -- chat with any local model or API; adding them is super simple.<br>　<sub>vLLM · llama.cpp · Ollama · OpenRouter · OpenAI</sub>
