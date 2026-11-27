@@ -80,7 +80,7 @@ health wiring, and systemd sandboxing.
 - [ ] License audit — delegate to `@license-auditor` (writes `license-audit.md`). A `licenses/`
       dir + `ACKNOWLEDGMENTS.md` already exist; not re-audited here.
 
-## CI (.woodpecker/ci.yml — snowman Forgejo + Woodpecker)
+## CI (.forgejo/workflows/ci.yml — Forgejo Actions, snowman runner)
 - [x] Runs on every push + pull_request.
 - [x] Runs install → `ruff check` → `py_compile` → `pytest -q`.
 - [x] pip-audit step — **hard gate** (a vuln fails the pipeline; flipped 2026-06-07).
@@ -99,7 +99,7 @@ health wiring, and systemd sandboxing.
 - [x] **systemd hardening — ADDED** sandbox directives to `telemachus-ui.service`.
 - [x] Loopback-default binds everywhere (compose `APP_BIND=127.0.0.1`, systemd `--host`
       loopback, Dockerfile documents the publish-layer exposure model).
-- [x] Release process documented — `.woodpecker/release.yml` (tag → kaniko OCI image + Linux
+- [x] Release process documented — `.forgejo/workflows/release.yml` (tag → kaniko OCI image + Linux
       bundle); secret-injection hook (sigil/Vaultwarden) wired into the systemd unit.
 - [ ] Rollback path not explicitly documented (images are tagged, so feasible). OPEN, low.
 

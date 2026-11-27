@@ -1,5 +1,5 @@
 # GitHub Actions — the cross-platform desktop bundles the self-hosted Linux
-# Woodpecker agent can't produce. Fires on a `vX.Y.Z` tag pushed to GitHub.
+# Forgejo Actions runner can't produce. Fires on a `vX.Y.Z` tag pushed to GitHub.
 #
 # Each leg runs on its NATIVE OS so the platform launcher is parse-checked there
 # before we ship it, then packages a relocatable source bundle (repo source +
@@ -12,7 +12,7 @@
 # build-on-your-own-Mac personal launcher; CI ships the bundle that actually
 # works on a clean machine.
 #
-# Woodpecker owns the Linux bundle + the OCI image (.woodpecker/release.yml).
+# Forgejo Actions owns the Linux bundle + the OCI image (.forgejo/workflows/release.yml).
 name: release
 
 on:
